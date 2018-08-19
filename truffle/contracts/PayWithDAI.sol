@@ -1,7 +1,7 @@
 pragma solidity ^0.4.23;
 
-import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-
+import "./ERC20.sol";
+import "./DelegateBank.sol";
 contract PayWithDAI {
   event ValidSignature(bool validSignature);
   event SufficientFunds(bool sufficientBalance, bool sufficientAllowance);
