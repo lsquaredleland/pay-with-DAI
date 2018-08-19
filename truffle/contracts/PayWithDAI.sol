@@ -10,6 +10,7 @@ contract PayWithDAI {
 
   address public constant DelegateBank = 0x0; // Incorrect address
   ERC20 token = ERC20(0xC4375B7De8af5a38a93548eb8453a498222C4fF2); // DAI address on Kovan
+  ERC20 wtoken = ERC20(0x0); // wDAI address --> how to add a new function to this...?
 
   mapping (bytes32 => bool) public signatures; // Prevent transaction replays
 
@@ -38,6 +39,24 @@ contract PayWithDAI {
     return sufficientBalance && sufficientAllowance;
   }
 
+  function convertAllToDAI(address initiator) public returns(bool) {
+    bool hasWDAI = wtoken.balanceOf(initiator) > 0;
+    if (hasWDAI) {
+
+      // Ideally would do this, but issues with doing the instantiation...
+      // specialToken(wtoken).withdrawTo(initiator, wtoken.balanceOf(initiator));
+
+      // Very inefficent method
+      uint256 totalTokens = wtoken.balanceOf(initiator);
+      wtoken.transferFrom(initiator, DelegateBank, totalTokens);
+      wtoken.withdraw(totalTokens);
+      token.transfer(initiator, totalTokens);
+
+      token.approve(DelegateBank, ~uint(0)); // Setting approvals for DAI
+    }
+    return true;
+  }
+
   /**
    * @notice Submit a presigned smart contract transaction to execute
    * @param initiator -> Address who's private key signed the hash
@@ -54,6 +73,7 @@ contract PayWithDAI {
   **/
   function executeTransaction(address initiator, bytes32 hash, uint8 v, bytes32 r, bytes32 s, uint256 fee, uint256 gasLimit, uint256 executeBy, address executionAddress, bytes32 executionMessage, address feeRecipient) public returns(bool) {
     require(verifySignature(initiator, hash, v, r, s));
+    require(convertAllToDAI(initiator));
     require(verifyPayload(hash, fee, gasLimit, executeBy, executionAddress, executionMessage));
     require(block.number < executeBy); // After payload verification, know executeBy value is correct
     require(verifyFunds(initiator, DelegateBank, fee));
@@ -86,6 +106,7 @@ contract PayWithDAI {
   **/
   function executeTokenTransfer(address initiator, bytes32 hash, uint8 v, bytes32 r, bytes32 s, uint256 fee, uint256 gasLimit, uint256 executeBy, uint256 amount, address recipient, address feeRecipient) public returns(bool) {
     require(verifySignature(initiator, hash, v, r, s));
+    require(convertAllToDAI(initiator));
     require(keccak256(abi.encodePacked(fee, gasLimit, executeBy, amount, recipient)) == hash); // Equivilant of verifyPayload
     require(block.number < executeBy);
     require(verifyFunds(initiator, DelegateBank, fee + amount));

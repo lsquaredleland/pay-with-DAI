@@ -16,15 +16,25 @@ A smart contract that allows individuals with only DAI in their wallets to trans
  * Delegators must use the DelegateBank
 
 ## Test Cases
- * [NOTE initiator cannot send pure ERC20 tokens...]
- * Call OasisDEX or another DEX (using DAI as a base trade)
+ * v1 -> Call some external contract (DEXs, etc)
+ * v1.5 -> Have a DelegateBank
  * v2 -> Wyre integration
  * v3 -> buying an item that is priced in ETH in DAI
- * v4 -> Writing the special smart contract
+ * v4 -> wDAI integration
+ * v5 ->
 
 ## How to Circumvent Allowances
  1. Give people "Wrapped DAI" (wDAI)
- 2. wDAI has an infinte allowance with the DelegateBank (aka special smart contract)
+ 2. If transferFrom() is called from the DelegateBank address, allowance limits are ignored
  3. On the 1st transaction a small amount of wDAI is converted to DAI then ETH
  4. Which is is used to set up the allowance with the DelegateBank (close to infinite allowance) (need to worry about gas price variations)
- 5. Now users are spending normal DAI
+ 5. All wDAI is converted to DAI
+ 6. Now users are spending normal DAI
+
+## Special Case, Transaction using wDAI
+This allows first time users who have not set approval with the whitelist DelegateBank contract to transact. Ex: users who are airdropped wDAI into a clean address.
+ 1. Check to see if the address has wDAI
+ 2. In PayWithDAI contract, have special case
+ 3. All wDAI is unwrapped to DAI
+ 4. Set approval for DAI to whitelist DelegateBank contract
+ 4. Proceed as normal
