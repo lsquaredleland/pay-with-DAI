@@ -23,7 +23,7 @@ contract PayWithDAI {
   }
 
   function verifyPayload(bytes32 hash, uint256 fee, uint256 gasLimit, uint256 executeBy, address executionAddress, bytes32 executionMessage) private returns(bool) {
-    bool validPayload = keccak256(abi.encodePacked(fee, gasLimit, executeBy, executionAddress, executionMessage)) == hash;
+    bool validPayload = keccak256(abi.encode(fee, gasLimit, executeBy, executionAddress, executionMessage)) == hash;
     emit ValidPayload(validPayload);
 
     return validPayload;
@@ -40,7 +40,7 @@ contract PayWithDAI {
 
   /**
    * @notice Submit a presigned smart contract transaction to execute
-   * @param initiator -> Address who signed the hash
+   * @param initiator -> Address who's private key signed the hash
    * @param hash -> hash of `fee`, `gasLimit`, `executeBy`, `amount`, `recipient`
    * @param v ->
    * @param r ->
