@@ -12,7 +12,7 @@ A smart contract that allows individuals with only DAI in their wallets to trans
 ## Implimentation Notes
  * Initiator must set allowance for specific delegator(s) or a DelegatorBank contract
  * DelegatorBank recieves all + delegators withdraw from it
- * Probably should force all delegators to use the DelegatorBank, makes setting up the approval more easily (set feeRecipient as DelegatorBank)
+ * Delegators must use the Delegator bank
 
 ## Test Cases
  * [NOTE initiator cannot send pure ERC20 tokens...]
