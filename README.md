@@ -34,23 +34,25 @@ This allows first time users who have not set approval with the whitelist Delega
 ## Next Iteration
  * How to convert DAI to ETH without having the Delegator having to be maker (supplying ETH + recieving DAI)
   * Integration with Oasis DEX via Oasis Direct proxy contracts
+  * Or perhaps using forwarding contracts
  * Send ETH to an address which is not from the Delegator
  	* Enables purchasing of crypto assets such as CryptoKitties (buying items priced in ETH in DAI)
  * Wyre Integration
  * Impliment 0x like relayer
- * Impliment 0x like code patterns for orderHash verification, etc
+ * Impliment 0x like code patterns for orderHash verification (EIP712), order schema, etc
+ * Implimenting proxy contracts
 
 ## Function Interaction
 The steps below are all done by the Delegator. The signer generates payload offline and send the payload and signature to delegators who submit on their behalf.
  1. `verifySignature()` checks that signature is from the signer
  	* Checks that signature hasn't been executed before
  2. `convertAllToDAI()` converts any wDAI balance to only DAI
-  * Checks if there is a Balance of wDAI
-  * Call `withdrawTo` in WDAI contract
-  	* Check that msg.sender is DelegateBank
-  	* Clears balance of wDAI
-  	* Transfers DAI balance of WDAI contract to signer
-  * Sets DAI approve for DelegateBank to infinite
+ 	* Checks if there is a Balance of wDAI
+ 	* Call `withdrawTo` in WDAI contract
+ 		* Check that msg.sender is DelegateBank
+ 		* Clears balance of wDAI
+ 		* Transfers DAI balance of WDAI contract to signer
+	* Sets DAI approve for DelegateBank to infinite
  3. `verifyPayload()` checks that the payload content equals the hash
  4. `verifyExecutionTime()` checks if execution height hasn't passed yet
  5. `verifyFunds()` checks that signer has enough DAI and appropiate allowance with DelegateBank
