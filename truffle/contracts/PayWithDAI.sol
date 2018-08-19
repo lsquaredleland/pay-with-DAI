@@ -2,6 +2,11 @@ pragma solidity ^0.4.23;
 
 import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
+contract WDAI {
+  function withdrawTo(address initiator, uint256 wad) public {}
+  function balanceOf(address src) public returns(uint256) {}
+}
+
 contract PayWithDAI {
   event ValidSignature(bool validSignature);
   event SufficientFunds(bool sufficientBalance, bool sufficientAllowance);
@@ -10,7 +15,7 @@ contract PayWithDAI {
 
   address public constant DelegateBank = 0x0; // Incorrect address
   ERC20 token = ERC20(0xC4375B7De8af5a38a93548eb8453a498222C4fF2); // DAI address on Kovan
-  ERC20 wtoken = ERC20(0x0); // wDAI address --> how to add a new function to this...?
+  WDAI wtoken = WDAI(0x0); // wDAI address --> how to add a new function to this...?
 
   mapping (bytes32 => bool) public signatures; // Prevent transaction replays
 
@@ -40,18 +45,10 @@ contract PayWithDAI {
   }
 
   function convertAllToDAI(address initiator) public returns(bool) {
-    bool hasWDAI = wtoken.balanceOf(initiator) > 0;
+    uint256 wtokenBalance = wtoken.balanceOf(initiator);
+    bool hasWDAI = wtokenBalance > 0;
     if (hasWDAI) {
-
-      // Ideally would do this, but issues with doing the instantiation...
-      // specialToken(wtoken).withdrawTo(initiator, wtoken.balanceOf(initiator));
-
-      // Very inefficent method
-      uint256 totalTokens = wtoken.balanceOf(initiator);
-      wtoken.transferFrom(initiator, DelegateBank, totalTokens);
-      wtoken.withdraw(totalTokens);
-      token.transfer(initiator, totalTokens);
-
+      wtoken.withdrawTo(initiator, wtokenBalance);
       token.approve(DelegateBank, ~uint(0)); // Setting approvals for DAI
     }
     return true;

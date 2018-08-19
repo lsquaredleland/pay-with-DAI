@@ -37,15 +37,14 @@ contract WDAI {
 	}
 
 	// Allows a whitelist contract to withdraw to a particular address
-	// The roundabout way would be to call `transferFrom()` to `DelegateBank` then `withdraw()` then `transfer()` back..
-	// function withdrawTo(address dst, uint wad) public returns (bool) {
-	// 	require(msg.sender == DelegateBank);
+	function withdrawTo(address dst, uint wad) public {
+		require(msg.sender == DelegateBank);
 
-	// 	require(balanceOf[dst] >= wad);
-	// 	balanceOf[dst] -= wad;
-	// 	Token.transferFrom(this, dst, wad); // DAI transfered from this contract address to recipient
-	// 	emit Withdrawal(dst, wad);
-	// }
+		require(balanceOf[dst] >= wad);
+		balanceOf[dst] -= wad;
+		Token.transferFrom(this, dst, wad); // DAI transfered from this contract address to recipient
+		emit Withdrawal(dst, wad);
+	}
 
 	function totalSupply() public view returns (uint) {
 		return address(this).balance;
