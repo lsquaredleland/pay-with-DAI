@@ -48,7 +48,7 @@ contract WDAI {
 	}
 
 	function totalSupply() public view returns (uint) {
-		return address(this).balance;
+		return Token.balanceOf(this);
 	}
 
 	function approve(address guy, uint wad) public returns (bool) {

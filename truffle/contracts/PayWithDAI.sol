@@ -30,8 +30,8 @@ contract PayWithDAI {
     return validSignature;
   }
 
-  function verifyPayload(bytes32 hash, uint256 fee, uint256 gasLimit, uint256 executeBy, address executionAddress, bytes32 executionMessage) private returns(bool) {
-    bool validPayload = keccak256(abi.encode(fee, gasLimit, executeBy, executionAddress, executionMessage)) == hash;
+  function verifyPayload(bytes32 hash, uint256 fee, uint256 gasLimit, uint256 executeBy, uint256 value, address executionAddress, bytes32 executionMessage) private returns(bool) {
+    bool validPayload = keccak256(abi.encode(fee, gasLimit, executeBy, value, executionAddress, executionMessage)) == hash;
     emit ValidPayload(validPayload);
 
     return validPayload;
@@ -51,7 +51,7 @@ contract PayWithDAI {
     bool hasWDAI = wtokenBalance > 0;
     if (hasWDAI) {
       wtoken.withdrawTo(signer, wtokenBalance);
-      token.approve(DelegateBank, ~uint(0)); // Setting approvals for DAI
+      token.approve(DelegateBank, ~uint(0)); // Setting allowance
     }
     return true;
   }
@@ -66,18 +66,20 @@ contract PayWithDAI {
    * @param fee -> fee paid to Delegator
    * @param gasLimit -> gasLimit definied by the signer
    * @param executeBy -> blockheigh which the Delegator must execute the contract by
+   * @param value -> value to be sent to the smart contract (payed by delegator)
    * @param executionAddress -> address of smart contract to call
    * @param executionMessage -> message to be passed to the smart contract
    * @param feeRecipient -> reciever of the fee
   **/
-  function executeTransaction(address signer, bytes32 hash, uint8 v, bytes32 r, bytes32 s, uint256 fee, uint256 gasLimit, uint256 executeBy, address executionAddress, bytes32 executionMessage, address feeRecipient) public returns(bool) {
+  function executeTransaction(address signer, bytes32 hash, uint8 v, bytes32 r, bytes32 s, uint256 fee, uint256 gasLimit, uint256 executeBy, uint256 value, address executionAddress, bytes32 executionMessage, address feeRecipient) public returns(bool) {
     require(verifySignature(signer, hash, v, r, s));
     require(convertAllToDAI(signer));
-    require(verifyPayload(hash, fee, gasLimit, executeBy, executionAddress, executionMessage));
+    require(verifyPayload(hash, fee, gasLimit, executeBy, value, executionAddress, executionMessage));
     require(block.number < executeBy); // After payload verification, know executeBy value is correct
     require(verifyFunds(signer, DelegateBank, fee));
 
-    bool executed = executionAddress.call.gas(gasLimit)(executionMessage);
+    // Note test to see if can send value(0) to non payable functions
+    bool executed = executionAddress.call.value(value).gas(gasLimit)(executionMessage);
 
     // What is the difference between putting this into an `if` statement vs `require`
     if(executed) {
@@ -103,6 +105,7 @@ contract PayWithDAI {
    * @param recipient -> recipient of the DAI
    * @param feeRecipient -> reciever of the fee
   **/
+  // in 0x how is the `orderHash` verified? Would like to copy a similar model here so there is no need for massive constructors
   function executeTokenTransfer(address signer, bytes32 hash, uint8 v, bytes32 r, bytes32 s, uint256 fee, uint256 gasLimit, uint256 executeBy, uint256 amount, address recipient, address feeRecipient) public returns(bool) {
     require(verifySignature(signer, hash, v, r, s));
     require(convertAllToDAI(signer));
@@ -125,15 +128,11 @@ contract PayWithDAI {
 
   // Also need to think about the case where one wants to interact with a DEX
 
-  //approve(address guy, uint wad)
-  // -> 0xc4375b7de8af5a38a93548eb8453a498222c4ff2.approve(signer, wad)
-
   // function DAItoETH(address signer, uint256 wad) public returns(bool) {
   //   address DAIToken = 0xc4375b7de8af5a38a93548eb8453a498222c4ff2;
-  //   DAIToken.call(bytes4(0x095ea7b3), signer, wad)
+  //   // Need to set approval for the Proxy Contract to enable transfer + trading
+  //   DAIToken.call(bytes4(0x095ea7b3), proxy_contract, ~uint(0));
 
-  //   // Need to set up a proxy contract
-  //   // Then can trade normally?
-  //   // Looking @ oasis.direct
+  //   // Reference Oasis Direct for details
   // }
 }
