@@ -11,7 +11,7 @@ A smart contract that allows individuals with only DAI in their wallets to trans
  6. Random Delegator withdrawls fees from DelegateBank
 
 ## Implimentation Notes
- * Initiator must set allowance for specific delegator(s) or a DelegateBank contract
+ * Signer must set allowance for specific delegator(s) or a DelegateBank contract
  * DelegateBank recieves all + delegators withdraw from it
  * Delegators must use the DelegateBank
 
@@ -38,3 +38,6 @@ This allows first time users who have not set approval with the whitelist Delega
  3. All wDAI is unwrapped to DAI
  4. Set approval for DAI to whitelist DelegateBank contract
  4. Proceed as normal
+
+## Next Iteration
+ * How to convert DAI to ETH without having the Delegator be the marketmaker?

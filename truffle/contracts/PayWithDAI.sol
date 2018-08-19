@@ -3,7 +3,7 @@ pragma solidity ^0.4.23;
 import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
 contract WDAI {
-  function withdrawTo(address initiator, uint256 wad) public {}
+  function withdrawTo(address signer, uint256 wad) public {}
   function balanceOf(address src) public returns(uint256) {}
 }
 
@@ -19,10 +19,12 @@ contract PayWithDAI {
 
   mapping (bytes32 => bool) public signatures; // Prevent transaction replays
 
-  function verifySignature(address initiator, bytes32 hash, uint8 v, bytes32 r, bytes32 s) private returns(bool) {
+  function verifySignature(address signer, bytes32 hash, uint8 v, bytes32 r, bytes32 s) private returns(bool) {
     require(signatures[hash] == false);
 
-    bool validSignature = ecrecover(hash, v, r, s) == initiator;
+    bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+    bytes32 prefixedHash = keccak256(prefix, hash);
+    bool validSignature = ecrecover(prefixedHash, v, r, s) == signer;
     emit ValidSignature(validSignature);
 
     return validSignature;
@@ -35,20 +37,20 @@ contract PayWithDAI {
     return validPayload;
   }
 
-  // Note this function is called after `verifySignature` --> initiator is known be valid
-  function verifyFunds(address initiator, address feeRecipient, uint256 fee) private returns(bool) {
-    bool sufficientBalance = token.balanceOf(initiator) >= fee;
-    bool sufficientAllowance = token.allowance(initiator, feeRecipient) >= fee;
+  // Note this function is called after `verifySignature` --> signer is known be valid
+  function verifyFunds(address signer, address feeRecipient, uint256 fee) private returns(bool) {
+    bool sufficientBalance = token.balanceOf(signer) >= fee;
+    bool sufficientAllowance = token.allowance(signer, feeRecipient) >= fee;
     emit SufficientFunds(sufficientBalance, sufficientAllowance);
 
     return sufficientBalance && sufficientAllowance;
   }
 
-  function convertAllToDAI(address initiator) public returns(bool) {
-    uint256 wtokenBalance = wtoken.balanceOf(initiator);
+  function convertAllToDAI(address signer) public returns(bool) {
+    uint256 wtokenBalance = wtoken.balanceOf(signer);
     bool hasWDAI = wtokenBalance > 0;
     if (hasWDAI) {
-      wtoken.withdrawTo(initiator, wtokenBalance);
+      wtoken.withdrawTo(signer, wtokenBalance);
       token.approve(DelegateBank, ~uint(0)); // Setting approvals for DAI
     }
     return true;
@@ -56,30 +58,30 @@ contract PayWithDAI {
 
   /**
    * @notice Submit a presigned smart contract transaction to execute
-   * @param initiator -> Address who's private key signed the hash
+   * @param signer -> Address who's private key signed the hash
    * @param hash -> hash of `fee`, `gasLimit`, `executeBy`, `amount`, `recipient`
    * @param v ->
    * @param r ->
    * @param s ->
    * @param fee -> fee paid to Delegator
-   * @param gasLimit -> gasLimit definied by the initiator
+   * @param gasLimit -> gasLimit definied by the signer
    * @param executeBy -> blockheigh which the Delegator must execute the contract by
    * @param executionAddress -> address of smart contract to call
    * @param executionMessage -> message to be passed to the smart contract
    * @param feeRecipient -> reciever of the fee
   **/
-  function executeTransaction(address initiator, bytes32 hash, uint8 v, bytes32 r, bytes32 s, uint256 fee, uint256 gasLimit, uint256 executeBy, address executionAddress, bytes32 executionMessage, address feeRecipient) public returns(bool) {
-    require(verifySignature(initiator, hash, v, r, s));
-    require(convertAllToDAI(initiator));
+  function executeTransaction(address signer, bytes32 hash, uint8 v, bytes32 r, bytes32 s, uint256 fee, uint256 gasLimit, uint256 executeBy, address executionAddress, bytes32 executionMessage, address feeRecipient) public returns(bool) {
+    require(verifySignature(signer, hash, v, r, s));
+    require(convertAllToDAI(signer));
     require(verifyPayload(hash, fee, gasLimit, executeBy, executionAddress, executionMessage));
     require(block.number < executeBy); // After payload verification, know executeBy value is correct
-    require(verifyFunds(initiator, DelegateBank, fee));
+    require(verifyFunds(signer, DelegateBank, fee));
 
     bool executed = executionAddress.call.gas(gasLimit)(executionMessage);
 
     // What is the difference between putting this into an `if` statement vs `require`
     if(executed) {
-      token.transferFrom(initiator, DelegateBank, fee); // transfer the tokens from initiator -> DelegateBank
+      token.transferFrom(signer, DelegateBank, fee); // transfer the tokens from signer -> DelegateBank
       require(DelegateBank.call(bytes4(keccak256("deposit(uint256, address)")), fee, feeRecipient)); // log the deposit into DelegateBank
       signatures[hash] = true;
 
@@ -89,24 +91,24 @@ contract PayWithDAI {
 
   /**
    * @notice Submit a presigned ERC20 transfer
-   * @param initiator -> Address who signed the hash
+   * @param signer -> Address who signed the hash
    * @param hash -> hash of `fee`, `gasLimit`, `executeBy`, `amount`, `recipient`
    * @param v ->
    * @param r ->
    * @param s ->
    * @param fee -> fee paid to Delegator
-   * @param gasLimit -> gasLimit definied by the initiator
+   * @param gasLimit -> gasLimit definied by the signer
    * @param executeBy -> blockheigh which the Delegator must execute the contract by
    * @param amount -> amount of DAI to be sent
    * @param recipient -> recipient of the DAI
    * @param feeRecipient -> reciever of the fee
   **/
-  function executeTokenTransfer(address initiator, bytes32 hash, uint8 v, bytes32 r, bytes32 s, uint256 fee, uint256 gasLimit, uint256 executeBy, uint256 amount, address recipient, address feeRecipient) public returns(bool) {
-    require(verifySignature(initiator, hash, v, r, s));
-    require(convertAllToDAI(initiator));
+  function executeTokenTransfer(address signer, bytes32 hash, uint8 v, bytes32 r, bytes32 s, uint256 fee, uint256 gasLimit, uint256 executeBy, uint256 amount, address recipient, address feeRecipient) public returns(bool) {
+    require(verifySignature(signer, hash, v, r, s));
+    require(convertAllToDAI(signer));
     require(keccak256(abi.encodePacked(fee, gasLimit, executeBy, amount, recipient)) == hash); // Equivilant of verifyPayload
     require(block.number < executeBy);
-    require(verifyFunds(initiator, DelegateBank, fee + amount));
+    require(verifyFunds(signer, DelegateBank, fee + amount));
 
     // Add more error checking etc here
     require(token.transferFrom(msg.sender, DelegateBank, fee + amount)); // Tranfer all the tokens to bank
@@ -115,4 +117,23 @@ contract PayWithDAI {
 
     signatures[hash] = true;
   }
+
+  // Need to think about transactions where one must call a function + send Ether at the same time
+  // Is there a way to generalised `executeTokenTransfer` and `executeTransaction`?
+  // Else there will be a third function --> `executeTransactionAndSendETH`
+  // Probably can combine `executeTransaction` + `executeTransactionAndSendETH`
+
+  // Also need to think about the case where one wants to interact with a DEX
+
+  //approve(address guy, uint wad)
+  // -> 0xc4375b7de8af5a38a93548eb8453a498222c4ff2.approve(signer, wad)
+
+  // function DAItoETH(address signer, uint256 wad) public returns(bool) {
+  //   address DAIToken = 0xc4375b7de8af5a38a93548eb8453a498222c4ff2;
+  //   DAIToken.call(bytes4(0x095ea7b3), signer, wad)
+
+  //   // Need to set up a proxy contract
+  //   // Then can trade normally?
+  //   // Looking @ oasis.direct
+  // }
 }

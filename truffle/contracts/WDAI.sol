@@ -5,6 +5,7 @@ import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC20/ERC2
 /** Goal
  * Create wDAI where the approvals are set to infinite for a predefined address
  * In this case the address would be DelegateBank
+ * Modelled after WETH9 - https://etherscan.io/address/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2#code
 **/
 
 contract WDAI {
