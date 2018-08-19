@@ -61,3 +61,10 @@ The steps below are all done by the Delegator. The signer generates payload offl
  8. Calls `deposit()` in DelegateBank to report how much the fee was
  9. Sets the signature as used, so cannot be replayed
  10. Calls `withdraw()` in DelegateBank to withdraw the accumulated fees
+
+## Deployment Script
+ 1. Deploy `WDAI.sol`
+ 2. Deploy `DelegateBank.sol`
+ 3. Deploy `PayWithDAI.sol` with the address from `WDAI.sol` and `DelegateBank.sol`
+ 4. Set DelegateBank address in WDAI contract
+ 5. Set PayWithDAI address in DelegateBank

@@ -18,22 +18,36 @@ contract WDAI {
 	event  Deposit(address indexed dst, uint wad);
 	event  Withdrawal(address indexed src, uint wad);
 
-	address constant public DelegateBank = 0x0;
+	address DelegateBank; // Is there a better pattern for whitelists?
+	address owner;
+
 	ERC20 Token = ERC20(0xC4375B7De8af5a38a93548eb8453a498222C4fF2); // address of DAI on Kovan
 
 	mapping (address => uint)                       public  balanceOf;
 	mapping (address => mapping (address => uint))  public  allowance;
 
+	constructor() public {
+    owner = msg.sender;
+  }
+
+	function setDelegateBank(address _DelegateBank) public {
+		if(msg.sender == owner) {
+			DelegateBank = _DelegateBank;
+		}
+	}
+
+	// Anyone can create wDAI, but it the only usecase if for auto-whitelisting DelegateBank
 	function deposit(uint256 wad) public payable {
+		require(Token.balanceOf(msg.sender) >= wad);
+		require(Token.transferFrom(msg.sender, this, wad)); // DAI transfered to this contract address
 		balanceOf[msg.sender] += wad;
-		Token.transferFrom(msg.sender, this, wad); // DAI transfered to this contract address
 		emit Deposit(msg.sender, msg.value);
 	}
 
 	function withdraw(uint wad) public {
 		require(balanceOf[msg.sender] >= wad);
+		require(Token.transferFrom(this, msg.sender, wad)); // DAI transfered from this contract address to recipient
 		balanceOf[msg.sender] -= wad;
-		Token.transferFrom(this, msg.sender, wad); // DAI transfered from this contract address to recipient
 		emit Withdrawal(msg.sender, wad);
 	}
 
