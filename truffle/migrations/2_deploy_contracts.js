@@ -1,8 +1,8 @@
-var ConvertLib = artifacts.require("./ConvertLib.sol");
-var MetaCoin = artifacts.require("./PayWithDAI.sol");
+var DelegateBank = artifacts.require("./DelegateBank.sol");
+var PayWithDAI= artifacts.require("./PayWithDAI.sol");
 
 module.exports = function(deployer) {
-  deployer.deploy(ConvertLib);
-  deployer.link(ConvertLib, MetaCoin);
-  deployer.deploy(MetaCoin);
+  deployer.deploy(DelegateBank);
+  deployer.link(DelegateBank, PayWithDAI);
+  deployer.deploy(PayWithDAI);
 };
