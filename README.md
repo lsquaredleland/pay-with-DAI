@@ -7,12 +7,13 @@ A smart contract that allows individuals with only DAI in their wallets to trans
  3. User posts the signature + payload somewhere online
  4. Random Delegator finds signature + payload
  5. Random Delegator submits it to the smart contract
- 6. Random Delegator withdrawls fees from DelegatorBank
+ 6. Smart contract executes logic: calling an external contract or transfering ERC20
+ 6. Random Delegator withdrawls fees from DelegateBank
 
 ## Implimentation Notes
- * Initiator must set allowance for specific delegator(s) or a DelegatorBank contract
- * DelegatorBank recieves all + delegators withdraw from it
- * Delegators must use the Delegator bank
+ * Initiator must set allowance for specific delegator(s) or a DelegateBank contract
+ * DelegateBank recieves all + delegators withdraw from it
+ * Delegators must use the DelegateBank
 
 ## Test Cases
  * [NOTE initiator cannot send pure ERC20 tokens...]
