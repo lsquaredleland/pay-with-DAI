@@ -37,28 +37,28 @@ contract WDAI {
 	}
 
 	// Anyone can create wDAI, but it the only usecase if for auto-whitelisting DelegateBank
-	function deposit(uint256 wad) public payable {
-		require(Token.balanceOf(msg.sender) >= wad);
-		require(Token.transferFrom(msg.sender, this, wad)); // DAI transfered to this contract address
-		balanceOf[msg.sender] += wad;
+	function deposit(uint256 _wad) public payable {
+		require(Token.balanceOf(msg.sender) >= _wad);
+		require(Token.transferFrom(msg.sender, this, _wad)); // DAI transfered to this contract address
+		balanceOf[msg.sender] += _wad;
 		emit Deposit(msg.sender, msg.value);
 	}
 
-	function withdraw(uint wad) public {
-		require(balanceOf[msg.sender] >= wad);
-		require(Token.transferFrom(this, msg.sender, wad)); // DAI transfered from this contract address to recipient
-		balanceOf[msg.sender] -= wad;
-		emit Withdrawal(msg.sender, wad);
+	function withdraw(uint _wad) public {
+		require(balanceOf[msg.sender] >= _wad);
+		require(Token.transferFrom(this, msg.sender, _wad)); // DAI transfered from this contract address to recipient
+		balanceOf[msg.sender] -= _wad;
+		emit Withdrawal(msg.sender, _wad);
 	}
 
 	// Allows a whitelist contract to withdraw to a particular address
-	function withdrawTo(address src, address dst, uint wad) public {
+	function withdrawTo(address _src, address _dst, uint _wad) public {
 		require(msg.sender == DelegateBank);
 
-		require(balanceOf[src] >= wad);
-		balanceOf[src] -= wad;
-		require(Token.transferFrom(this, dst, wad)); // DAI transfered from this contract address to recipient
-		emit Withdrawal(src, wad);
+		require(balanceOf[_src] >= _wad);
+		balanceOf[_src] -= _wad;
+		require(Token.transferFrom(this, _dst, _wad)); // DAI transfered from this contract address to recipient
+		emit Withdrawal(_src, _wad);
 		return true;
 	}
 
@@ -66,31 +66,31 @@ contract WDAI {
 		return Token.balanceOf(this);
 	}
 
-	function approve(address guy, uint wad) public returns (bool) {
-		allowance[msg.sender][guy] = wad;
-		emit Approval(msg.sender, guy, wad);
+	function approve(address guy, uint _wad) public returns (bool) {
+		allowance[msg.sender][guy] = _wad;
+		emit Approval(msg.sender, guy, _wad);
 		return true;
 	}
 
-	function transfer(address dst, uint wad) public returns (bool) {
-		return transferFrom(msg.sender, dst, wad);
+	function transfer(address _dst, uint _wad) public returns (bool) {
+		return transferFrom(msg.sender, _dst, _wad);
 	}
 
-	function transferFrom(address src, address dst, uint wad) public returns (bool) {
-		require(balanceOf[src] >= wad);
+	function transferFrom(address _src, address _dst, uint _wad) public returns (bool) {
+		require(balanceOf[_src] >= _wad);
 
-		// If the src is not DelegateBank, then traditional behaviour
-		if (src != DelegateBank) {
-			if (src != msg.sender && allowance[src][msg.sender] != uint(-1)) {
-				require(allowance[src][msg.sender] >= wad);
-				allowance[src][msg.sender] -= wad;
+		// If the _src is not DelegateBank, then traditional behaviour
+		if (_src != DelegateBank) {
+			if (_src != msg.sender && allowance[_src][msg.sender] != uint(-1)) {
+				require(allowance[_src][msg.sender] >= _wad);
+				allowance[_src][msg.sender] -= _wad;
 			}
 		}
 
-		balanceOf[src] -= wad;
-		balanceOf[dst] += wad;
+		balanceOf[_src] -= _wad;
+		balanceOf[_dst] += _wad;
 
-		emit Transfer(src, dst, wad);
+		emit Transfer(_src, _dst, _wad);
 
 		return true;
 	}

@@ -15,30 +15,30 @@ contract DelegateBank {
     owner = msg.sender;
   }
 
-  function setParent(address parent) public returns(bool) {
+  function setParent(address _parent) public returns(bool) {
   	require(msg.sender == owner);
-  	PayWithDAI = parent;
+  	PayWithDAI = _parent;
   }
 
 	// Withdraw is called by Delegators
-	function withdraw(uint256 amount, address feeRecipient) public returns(bool) {
-		require(balances[msg.sender] >= amount);
-		balances[feeRecipient] -= amount;
-    token.transferFrom(this, feeRecipient, amount);
+	function withdraw(uint256 _amount, address _feeRecipient) public returns(bool) {
+		require(balances[msg.sender] >= _amount);
+		balances[_feeRecipient] -= _amount;
+    token.transferFrom(this, _feeRecipient, _amount);
     return true;
 	}
 
 	// A deposit function is required as the smart contract is unable to determine which address deposited tokens (DAI) into it.
-	function deposit(uint256 amount, address feeRecipient) public returns(bool) {
+	function deposit(uint256 _amount, address _feeRecipient) public returns(bool) {
 		require(msg.sender == PayWithDAI); // Don't want random contracts to deposit tokens here
-		balances[feeRecipient] += amount;
+		balances[_feeRecipient] += _amount;
 		return true;
 	}
 
 	// Only `PayWithDAI` contract can call this function
-	function send(address recipient, uint256 amount) public returns(bool) {
+	function send(address recipient, uint256 _amount) public returns(bool) {
 		require(msg.sender == PayWithDAI);
-		token.transferFrom(this, recipient, amount);
+		token.transferFrom(this, recipient, _amount);
 		return true;
 	}
 }
