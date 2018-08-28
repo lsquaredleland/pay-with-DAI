@@ -37,27 +37,20 @@ contract PayWithDAI {
     return validPayload;
   }
 
+  function verifyTokenTransferPayload(bytes32 hash, uint256 fee, uint256 gasLimit, uint256 expiration, uint256 amount, address recipient) private returns(bool) {
+    bool validPayload = keccak256(abi.encodePacked(fee, gasLimit, expiration, amount, recipient)) == hash;
+    emit ValidPayload(validPayload);
+
+    return validPayload;
+  }
+
   // Note this function is called after `verifySignature` --> signer is known be valid
   function verifyFunds(address signer, address feeRecipient, uint256 fee) private returns(bool) {
-    bool sufficientBalance = token.balanceOf(signer) >= fee;
-    bool sufficientAllowance = token.allowance(signer, feeRecipient) >= fee;
+    bool sufficientBalance = wtoken.balanceOf(signer) >= fee;
+    bool sufficientAllowance = wtoken.allowance(signer, feeRecipient) >= fee;
     emit SufficientFunds(sufficientBalance, sufficientAllowance);
 
     return sufficientBalance && sufficientAllowance;
-  }
-
-  function convertAllToDAI(address signer) public returns(bool) {
-    uint256 wtokenBalance = wtoken.balanceOf(signer);
-    bool hasWDAI = wtokenBalance > 0;
-    if (hasWDAI) {
-      wtoken.withdrawTo(signer, wtokenBalance);
-      // ***Post Mortem ISSUE***
-      // realised that it's not possible to set an allowance for the signer's tokens.
-      // as the approve() looks at the msg.sender. Instead what would only be possible is to send
-      // the newly unwrapped DAI to the PayWithDAI contract and keep a balance in the contract.
-      token.approve(DelegateBank, ~uint(0)); // Setting allowance
-    }
-    return true;
   }
 
   /**
@@ -77,7 +70,6 @@ contract PayWithDAI {
   **/
   function executeTransaction(address signer, bytes32 hash, uint8 v, bytes32 r, bytes32 s, uint256 fee, uint256 gasLimit, uint256 expiration, uint256 value, address executionAddress, bytes32 executionMessage, address feeRecipient) public returns(bool) {
     require(verifySignature(signer, hash, v, r, s));
-    require(convertAllToDAI(signer));
     require(verifyPayload(hash, fee, gasLimit, expiration, value, executionAddress, executionMessage));
     require(block.number < expiration); // After payload verification, know expiration value is correct
     require(verifyFunds(signer, DelegateBank, fee));
@@ -87,7 +79,7 @@ contract PayWithDAI {
 
     // What is the difference between putting this into an `if` statement vs `require`
     if(executed) {
-      token.transferFrom(signer, DelegateBank, fee); // transfer the tokens from signer -> DelegateBank
+      require(wtoken.withdrawTo(signer, DelegateBank, fee));
       require(DelegateBank.call(bytes4(keccak256("deposit(uint256, address)")), fee, feeRecipient)); // log the deposit into DelegateBank
       signatures[hash] = true;
 
@@ -112,13 +104,12 @@ contract PayWithDAI {
   // in 0x how is the `orderHash` verified? Would like to copy a similar model here so there is no need for massive constructors
   function executeTokenTransfer(address signer, bytes32 hash, uint8 v, bytes32 r, bytes32 s, uint256 fee, uint256 gasLimit, uint256 expiration, uint256 amount, address recipient, address feeRecipient) public returns(bool) {
     require(verifySignature(signer, hash, v, r, s));
-    require(convertAllToDAI(signer));
-    require(keccak256(abi.encodePacked(fee, gasLimit, expiration, amount, recipient)) == hash); // Equivilant of verifyPayload
+    require(verifyTokenTransferPayload(fee, gasLimit, expiration, amount, recipient));
     require(block.number < expiration);
     require(verifyFunds(signer, DelegateBank, fee + amount));
 
     // Add more error checking etc here
-    require(token.transferFrom(msg.sender, DelegateBank, fee + amount)); // Tranfer all the tokens to bank
+    require(wtoken.withdrawTo(signer, DelegateBank, fee + amount)); // Tranfer all the tokens to bank
     require(DelegateBank.call(bytes4(keccak256("send(address, uint256)")), recipient, amount)); // Transfers tokens to final recipient
     require(DelegateBank.call(bytes4(keccak256("deposit(uint256, address)")), fee, feeRecipient)); // report fee deposit
 
