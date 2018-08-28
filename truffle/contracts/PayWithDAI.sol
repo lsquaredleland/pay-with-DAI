@@ -30,8 +30,8 @@ contract PayWithDAI {
     return validSignature;
   }
 
-  function verifyPayload(bytes32 hash, uint256 fee, uint256 gasLimit, uint256 executeBy, uint256 value, address executionAddress, bytes32 executionMessage) private returns(bool) {
-    bool validPayload = keccak256(abi.encode(fee, gasLimit, executeBy, value, executionAddress, executionMessage)) == hash;
+  function verifyPayload(bytes32 hash, uint256 fee, uint256 gasLimit, uint256 expiration, uint256 value, address executionAddress, bytes32 executionMessage) private returns(bool) {
+    bool validPayload = keccak256(abi.encode(fee, gasLimit, expiration, value, executionAddress, executionMessage)) == hash;
     emit ValidPayload(validPayload);
 
     return validPayload;
@@ -51,6 +51,10 @@ contract PayWithDAI {
     bool hasWDAI = wtokenBalance > 0;
     if (hasWDAI) {
       wtoken.withdrawTo(signer, wtokenBalance);
+      // ***Post Mortem ISSUE***
+      // realised that it's not possible to set an allowance for the signer's tokens.
+      // as the approve() looks at the msg.sender. Instead what would only be possible is to send
+      // the newly unwrapped DAI to the PayWithDAI contract and keep a balance in the contract.
       token.approve(DelegateBank, ~uint(0)); // Setting allowance
     }
     return true;
@@ -59,23 +63,23 @@ contract PayWithDAI {
   /**
    * @notice Submit a presigned smart contract transaction to execute
    * @param signer -> Address who's private key signed the hash
-   * @param hash -> hash of `fee`, `gasLimit`, `executeBy`, `amount`, `recipient`
+   * @param hash -> hash of `fee`, `gasLimit`, `expiration`, `amount`, `recipient`
    * @param v ->
    * @param r ->
    * @param s ->
    * @param fee -> fee paid to Delegator
    * @param gasLimit -> gasLimit definied by the signer
-   * @param executeBy -> blockheigh which the Delegator must execute the contract by
+   * @param expiration -> blockheigh which the Delegator must execute the contract by
    * @param value -> value to be sent to the smart contract (payed by delegator)
    * @param executionAddress -> address of smart contract to call
    * @param executionMessage -> message to be passed to the smart contract
    * @param feeRecipient -> reciever of the fee
   **/
-  function executeTransaction(address signer, bytes32 hash, uint8 v, bytes32 r, bytes32 s, uint256 fee, uint256 gasLimit, uint256 executeBy, uint256 value, address executionAddress, bytes32 executionMessage, address feeRecipient) public returns(bool) {
+  function executeTransaction(address signer, bytes32 hash, uint8 v, bytes32 r, bytes32 s, uint256 fee, uint256 gasLimit, uint256 expiration, uint256 value, address executionAddress, bytes32 executionMessage, address feeRecipient) public returns(bool) {
     require(verifySignature(signer, hash, v, r, s));
     require(convertAllToDAI(signer));
-    require(verifyPayload(hash, fee, gasLimit, executeBy, value, executionAddress, executionMessage));
-    require(block.number < executeBy); // After payload verification, know executeBy value is correct
+    require(verifyPayload(hash, fee, gasLimit, expiration, value, executionAddress, executionMessage));
+    require(block.number < expiration); // After payload verification, know expiration value is correct
     require(verifyFunds(signer, DelegateBank, fee));
 
     // Note test to see if can send value(0) to non payable functions
@@ -94,23 +98,23 @@ contract PayWithDAI {
   /**
    * @notice Submit a presigned ERC20 transfer
    * @param signer -> Address who signed the hash
-   * @param hash -> hash of `fee`, `gasLimit`, `executeBy`, `amount`, `recipient`
+   * @param hash -> hash of `fee`, `gasLimit`, `expiration`, `amount`, `recipient`
    * @param v ->
    * @param r ->
    * @param s ->
    * @param fee -> fee paid to Delegator
    * @param gasLimit -> gasLimit definied by the signer
-   * @param executeBy -> blockheigh which the Delegator must execute the contract by
+   * @param expiration -> blockheigh which the Delegator must execute the contract by
    * @param amount -> amount of DAI to be sent
    * @param recipient -> recipient of the DAI
    * @param feeRecipient -> reciever of the fee
   **/
   // in 0x how is the `orderHash` verified? Would like to copy a similar model here so there is no need for massive constructors
-  function executeTokenTransfer(address signer, bytes32 hash, uint8 v, bytes32 r, bytes32 s, uint256 fee, uint256 gasLimit, uint256 executeBy, uint256 amount, address recipient, address feeRecipient) public returns(bool) {
+  function executeTokenTransfer(address signer, bytes32 hash, uint8 v, bytes32 r, bytes32 s, uint256 fee, uint256 gasLimit, uint256 expiration, uint256 amount, address recipient, address feeRecipient) public returns(bool) {
     require(verifySignature(signer, hash, v, r, s));
     require(convertAllToDAI(signer));
-    require(keccak256(abi.encodePacked(fee, gasLimit, executeBy, amount, recipient)) == hash); // Equivilant of verifyPayload
-    require(block.number < executeBy);
+    require(keccak256(abi.encodePacked(fee, gasLimit, expiration, amount, recipient)) == hash); // Equivilant of verifyPayload
+    require(block.number < expiration);
     require(verifyFunds(signer, DelegateBank, fee + amount));
 
     // Add more error checking etc here
@@ -120,19 +124,4 @@ contract PayWithDAI {
 
     signatures[hash] = true;
   }
-
-  // Need to think about transactions where one must call a function + send Ether at the same time
-  // Is there a way to generalised `executeTokenTransfer` and `executeTransaction`?
-  // Else there will be a third function --> `executeTransactionAndSendETH`
-  // Probably can combine `executeTransaction` + `executeTransactionAndSendETH`
-
-  // Also need to think about the case where one wants to interact with a DEX
-
-  // function DAItoETH(address signer, uint256 wad) public returns(bool) {
-  //   address DAIToken = 0xc4375b7de8af5a38a93548eb8453a498222c4ff2;
-  //   // Need to set approval for the Proxy Contract to enable transfer + trading
-  //   DAIToken.call(bytes4(0x095ea7b3), proxy_contract, ~uint(0));
-
-  //   // Reference Oasis Direct for details
-  // }
 }
