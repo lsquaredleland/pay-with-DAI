@@ -80,6 +80,7 @@ contract PayWithDAI {
 
     // What is the difference between putting this into an `if` statement vs `require`
     if(executed) {
+      //Instead of withdrawing the wDAI to DAI, could just keep everything as wDAI if it uses less gas....
       require(wtoken.withdrawTo(_signer, _DelegateBank, _fee));
       require(DelegateBank.call(bytes4(keccak256("deposit(uint256, address)")), _fee, _feeRecipient)); // log the deposit into DelegateBank
       signatures[_hash] = true;
