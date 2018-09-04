@@ -22,6 +22,10 @@ contract DelegateBank {
   	return true;
   }
 
+  function balanceOf(address _src) public returns (uint256) {
+  	return balances[_src];
+  }
+
 	// Withdraw is called by Delegators
 	function withdraw(uint256 _amount, address _feeRecipient) public returns (bool) {
 		require(balances[msg.sender] >= _amount);

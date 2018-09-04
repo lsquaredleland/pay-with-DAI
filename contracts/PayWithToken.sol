@@ -49,9 +49,9 @@ contract PayWithToken {
   }
 
   // Note this function is called after `verifySignature` --> signer is known be valid
-  function verifyFunds(address _signer, uint256 _fee) private returns (bool) {
+  function verifyFunds(address _signer, uint256 _fundsRequired) private returns (bool) {
     // no need to check allowance as it's already set ot infinite
-    bool sufficientBalance = wtoken.balanceOf(_signer) >= _fee;
+    bool sufficientBalance = wtoken.balanceOf(_signer) >= _fundsRequired;
     emit SufficientFunds(sufficientBalance);
 
     return sufficientBalance;
@@ -72,10 +72,24 @@ contract PayWithToken {
    * @param _executionMessage -> message to be passed to the smart contract
    * @param _feeRecipient -> reciever of the fee
   **/
-  function executeTransaction(address _signer, bytes32 _hash, uint8 _v, bytes32 _r, bytes32 _s, uint256 _fee, uint256 _gasLimit, uint256 _expiration, uint256 _value, address _executionAddress, bytes32 _executionMessage, address _feeRecipient, uint256 _nonce) public returns (bool) {
+  function executeTransaction(address _signer,
+    bytes32 _hash,
+    uint8 _v,
+    bytes32 _r,
+    bytes32 _s,
+    uint256 _fee,
+    uint256 _gasLimit,
+    uint256 _expiration,
+    uint256 _value,
+    address _executionAddress,
+    bytes32 _executionMessage,
+    address _feeRecipient,
+    uint256 _nonce
+  ) public returns (bool) {
+    // Note order of the reuqires does not matter as they will all be called before execution
     require(verifySignature(_signer, _hash, _v, _r, _s));
     require(verifyPayload(_hash, _fee, _gasLimit, _expiration, _value, _executionAddress, _executionMessage, _nonce));
-    require(block.number < _expiration); // After payload _verification, know expiration value is correct
+    require(block.number < _expiration);
     require(verifyFunds(_signer, _fee));
 
     // Note test to see if can send value(0) to non payable functions
@@ -88,6 +102,7 @@ contract PayWithToken {
     signatures[_hash] = true;
 
     emit TransactionDelegationComplete(_feeRecipient, _fee);
+    return true;
   }
 
   /**
@@ -105,7 +120,20 @@ contract PayWithToken {
    * @param _feeRecipient -> reciever of the fee
   **/
   // in 0x how is the `orderHash` verified? Would like to copy a similar model here so there is no need for massive constructors
-  function executeTokenTransfer(address _signer, bytes32 _hash, uint8 _v, bytes32 _r, bytes32 _s, uint256 _fee, uint256 _gasLimit, uint256 _expiration, uint256 _amount, address _recipient, address _feeRecipient, uint256 _nonce) public returns (bool) {
+  function executeTokenTransfer(
+    address _signer,
+    bytes32 _hash,
+    uint8 _v,
+    bytes32 _r,
+    bytes32 _s,
+    uint256 _fee,
+    uint256 _gasLimit,
+    uint256 _expiration,
+    uint256 _amount,
+    address _recipient,
+    address _feeRecipient,
+    uint256 _nonce
+  ) public returns (bool) {
     require(verifySignature(_signer, _hash, _v, _r, _s));
     require(verifyTokenTransferPayload(_hash, _fee, _gasLimit, _expiration, _amount, _recipient, _nonce));
     require(block.number < _expiration);
@@ -117,5 +145,8 @@ contract PayWithToken {
     require(DelegateBank.call(bytes4(keccak256("deposit(uint256, address)")), _fee, _feeRecipient)); // report fee deposit
 
     signatures[_hash] = true;
+
+    emit TransactionDelegationComplete(_feeRecipient, _fee);
+    return true;
   }
 }

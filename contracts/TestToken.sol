@@ -2,6 +2,8 @@ pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 
+// Using purely for testing purposes
+
 contract TestToken is StandardToken {
     string public name = "TestToken";
     string public symbol = "TT";
@@ -12,5 +14,4 @@ contract TestToken is StandardToken {
         totalSupply_ = INITIAL_SUPPLY;
         balances[msg.sender] = INITIAL_SUPPLY;
     }
-
 }

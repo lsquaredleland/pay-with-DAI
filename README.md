@@ -62,12 +62,5 @@ The steps below are all done by the Delegator. The signer generates payload offl
  9. Sets the signature as used, so cannot be replayed
  10. Calls `withdraw()` in DelegateBank to withdraw the accumulated fees
 
-## Deployment Script
- 1. Deploy `WDAI.sol`
- 2. Deploy `DelegateBank.sol`
- 3. Deploy `PayWithDAI.sol` with the address from `WDAI.sol` and `DelegateBank.sol`
- 4. Set DelegateBank address in WDAI contract
- 5. Set PayWithDAI address in DelegateBank
-
 ## Initial Submission
 This was initially done at MakerDAO's and Wyre's [hackathon](https://www.eventbrite.com/e/unblock-the-hackathon-tickets-48209728596) in August 2018. With Leland Lee, Alan Lai (Blockchain at Berkeley) and Phillip Liu Jr. (JLab)

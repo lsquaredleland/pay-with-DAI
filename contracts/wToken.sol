@@ -25,6 +25,7 @@ contract wToken {
 
 	mapping (address => uint)                       public  balanceOf;
 	mapping (address => mapping (address => uint))  public  allowance;
+	// Try to see if can eliminate allowances
 
 	constructor(address _token, address _DelegateBank) public {
     owner = msg.sender;
@@ -62,9 +63,13 @@ contract wToken {
 		return Token.balanceOf(this);
 	}
 
-	function approve(address guy, uint _wad) public returns (bool) {
-		allowance[msg.sender][guy] = _wad;
-		emit Approval(msg.sender, guy, _wad);
+	// Possible to delete, as only want to have whitelisted approvals
+	// Should this contact only be accessible by `DelegateBank`?
+	// Why would another smart contact want to interact with this?
+	// Might be interesting to merge this with the bank...
+	function approve(address _guy, uint _wad) public returns (bool) {
+		allowance[msg.sender][_guy] = _wad;
+		emit Approval(msg.sender, _guy, _wad);
 		return true;
 	}
 
