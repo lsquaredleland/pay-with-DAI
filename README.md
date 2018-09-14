@@ -3,6 +3,7 @@ A smart contract that allows individuals with only DAI in their wallets to trans
 
 ## UX
  1. User creates create the payload
+ ![GitHub Logo](/datafields.png)
  2. User signs the payload
  3. User posts the signature + payload somewhere online
  4. Random Delegator finds signature + payload
@@ -46,7 +47,7 @@ This allows first time users who have not set approval with the whitelist Delega
 The steps below are all done by the Delegator. The signer generates payload offline and send the payload and signature to delegators who submit on their behalf.
  1. `verifySignature()` checks that signature is from the signer
  	* Checks that signature hasn't been executed before
- 2. `convertAllToDAI()` converts any wDAI balance to only DAI
+ 2. wDAI to DAI conversion step
  	* Checks if there is a Balance of wDAI
  	* Call `withdrawTo` in WDAI contract
  		* Check that msg.sender is DelegateBank
